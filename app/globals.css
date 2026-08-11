@@ -1,0 +1,177 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Muse is dark-only by design. There is no light theme and no toggle — the
+ * palette is the brand. Tokens are mirrored as CSS variables so non-Tailwind
+ * surfaces (the service worker's offline page, .ics previews) can use them.
+ */
+:root {
+  --bg: #171216;
+  --surface: #211a1f;
+  --raised: #2a2127;
+  --line: #3a2e35;
+
+  --text: #f1e9de;
+  --soft: #c6b8ab;
+  --muted: #93857b;
+  --faint: #6e6259;
+
+  --champagne: #d8c39a;
+  --champ-deep: #b69b6c;
+
+  --wine: #a05266;
+  --wine-deep: #4a2230;
+  --wine-dark: #2e161f;
+
+  --green: #8fb89b;
+  --red: #d07a6c;
+  --violet: #a995c9;
+
+  --wine-gradient: linear-gradient(150deg, var(--wine-deep), var(--wine-dark));
+
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    /* Mobile hard rule: nothing may ever push the layout sideways. */
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body), 'Albert Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* Safe-area padding for installed PWAs on notched devices. */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  img,
+  video,
+  canvas,
+  svg,
+  iframe {
+    max-width: 100%;
+    height: auto;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    max-width: 100%;
+    font: inherit;
+  }
+
+  /* 16px minimum on inputs, or iOS Safari zooms the whole page on focus. */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--champagne);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: rgba(216, 195, 154, 0.28);
+    color: var(--text);
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--line);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer components {
+  /* Eyebrow: mono, uppercase, wide tracking. Used above every section. */
+  .eyebrow {
+    font-family: var(--font-mono), 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.6875rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .card {
+    background-color: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+  }
+
+  /* Busy state for items still being organised by the classifier. */
+  .shimmer {
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(216, 195, 154, 0.09) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+
+  .gutter {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  /* Hide scrollbars on horizontal chip rails without disabling the scroll. */
+  .rail {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-snap-type: x proximity;
+  }
+  .rail::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/*
+ * Motion is decorative here — the celebration, the rise-in, the shimmer. If the
+ * user has asked for less of it, they get none of it.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
