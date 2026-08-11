@@ -1,0 +1,78 @@
+project_id = "muse"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[db.pooler]
+enabled = false
+
+# Studio is off by default: it and pg-meta add two more containers, and on a
+# machine already running another Supabase stack they routinely miss the CLI's
+# health-check window and roll the whole start back. Turn it on if you want the
+# table browser on :54323 and your machine has the headroom.
+[studio]
+enabled = false
+port = 54323
+
+# Realtime and Edge Functions are not used by Muse at all. Realtime would open a
+# websocket per tab for tables nobody subscribes to, and there are no edge
+# functions in this repo.
+[realtime]
+enabled = false
+
+[edge_runtime]
+enabled = false
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "8MiB"
+
+# Muse resizes images in the browser before upload and serves them through its
+# own authenticated proxy, so the imgproxy sidecar has nothing to do.
+[storage.image_transformation]
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/callback"]
+jwt_expiry = 3600
+# Sessions persist until an explicit Sign out.
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+# Verification is on in production; local dev auto-confirms so tests can run
+# without an inbox round-trip.
+enable_confirmations = false
+secure_password_change = true
+
+[auth.email.template.confirmation]
+subject = "Confirm your Muse account"
+
+[auth.external.google]
+enabled = true
+client_id = "env(GOOGLE_CLIENT_ID)"
+secret = "env(GOOGLE_CLIENT_SECRET)"
+redirect_uri = "http://127.0.0.1:54321/auth/v1/callback"
+skip_nonce_check = false
+
+[analytics]
+enabled = false
