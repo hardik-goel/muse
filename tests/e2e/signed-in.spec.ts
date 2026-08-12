@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
+import { retryTransient } from './helpers';
 
 /**
  * The signed-in product, in a real browser, against a real database.
@@ -24,11 +25,18 @@ test.describe('signed in', () => {
 
   test.beforeEach(async ({ page, context }) => {
     const client = createClient(URL_, ANON, { auth: { persistSession: false } });
-    const { data, error } = await client.auth.signInWithPassword({
-      email: EMAIL,
-      password: PASSWORD,
+
+    // signInWithPassword resolves with { error } rather than rejecting, so the
+    // retry only engages if a transient failure is re-thrown. A genuinely
+    // missing seed account falls through and skips the suite instead.
+    const { data, error } = await retryTransient(async () => {
+      const result = await client.auth.signInWithPassword({ email: EMAIL, password: PASSWORD });
+      if (result.error && /timed out|timeout|fetch failed/i.test(result.error.message)) {
+        throw result.error;
+      }
+      return result;
     });
-    test.skip(Boolean(error), 'Run `npm run db:seed` first.');
+    test.skip(Boolean(error), `Run \`npm run db:seed\` first (${error?.message ?? ''}).`);
 
     const ref = new globalThis.URL(URL_).hostname.split('.')[0];
     await context.addCookies([
@@ -59,7 +67,17 @@ test.describe('signed in', () => {
     const text = `browser drop ${Date.now()}`;
     await page.getByTestId('drop-fab').click();
     await page.getByTestId('capture-input').fill(text);
+
+    // Wait on the write itself rather than on the sheet closing. The sheet
+    // closes only after the request resolves, and on a cold dev server that
+    // route can take longer than any sensible UI timeout — which says nothing
+    // about whether the capture worked.
+    const captured = page.waitForResponse(
+      (res) => res.url().includes('/api/capture') && res.request().method() === 'POST',
+      { timeout: 60_000 },
+    );
     await page.getByTestId('capture-submit').click();
+    expect((await captured).status()).toBe(200);
     await expect(page.getByTestId('capture-input')).toBeHidden();
 
     await open(page, '/library');
@@ -110,6 +128,7 @@ test.describe('signed in', () => {
     expect((await saved).status()).toBe(200);
 
     await page.reload();
+    await expect(page.locator('[data-shell-ready="true"]')).toBeAttached();
     await expect(page.getByLabel('notes')).toHaveValue(note);
   });
 

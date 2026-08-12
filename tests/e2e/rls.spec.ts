@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
+import { retryTransient } from './helpers';
 
 /**
  * Proves the isolation claim with two real accounts rather than by reading the
@@ -30,10 +31,14 @@ test.describe('row level security', () => {
       [alice, 'alice'],
       [bob, 'bob'],
     ] as const) {
-      const { data, error } = await admin.auth.admin.createUser({
-        email: person.email,
-        password: person.password,
-        email_confirm: true,
+      const { data, error } = await retryTransient(async () => {
+        const result = await admin.auth.admin.createUser({
+          email: person.email,
+          password: person.password,
+          email_confirm: true,
+        });
+        if (result.error) throw result.error;
+        return result;
       });
       if (error) throw error;
       if (target === 'alice') aliceId = data.user.id;
@@ -58,8 +63,10 @@ test.describe('row level security', () => {
 
   async function signedInAs(person: { email: string; password: string }) {
     const client = createClient(URL, ANON, { auth: { persistSession: false } });
-    const { error } = await client.auth.signInWithPassword(person);
-    if (error) throw error;
+    await retryTransient(async () => {
+      const { error } = await client.auth.signInWithPassword(person);
+      if (error) throw error;
+    });
     return client;
   }
 
