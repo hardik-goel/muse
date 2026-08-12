@@ -23,7 +23,7 @@ test.describe.configure({ mode: 'serial' });
 test.describe('signed in', () => {
   test.skip(!URL_ || !ANON, 'Needs a running Supabase and a seeded account.');
 
-  test.beforeEach(async ({ page, context }) => {
+  test.beforeEach(async ({ page, context, baseURL }) => {
     const client = createClient(URL_, ANON, { auth: { persistSession: false } });
 
     // signInWithPassword resolves with { error } rather than rejecting, so the
@@ -39,11 +39,14 @@ test.describe('signed in', () => {
     test.skip(Boolean(error), `Run \`npm run db:seed\` first (${error?.message ?? ''}).`);
 
     const ref = new globalThis.URL(URL_).hostname.split('.')[0];
+
+    // Scope the cookie to whatever host the suite is pointed at, so this runs
+    // against a deployment as readily as against localhost.
     await context.addCookies([
       {
         name: `sb-${ref}-auth-token`,
         value: `base64-${Buffer.from(JSON.stringify(data.session)).toString('base64')}`,
-        url: page.url() === 'about:blank' ? 'http://127.0.0.1:3000' : page.url(),
+        url: baseURL ?? 'http://127.0.0.1:3000',
       },
     ]);
   });

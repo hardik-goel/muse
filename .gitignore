@@ -20,3 +20,9 @@ supabase/.temp/
 .turbo
 *.log
 .env*
+
+# Agent tooling installed as a side effect of `vercel integration add`.
+# Local machine configuration, not part of the product.
+.agents/
+.claude/
+skills-lock.json

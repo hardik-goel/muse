@@ -400,12 +400,22 @@ Configured in `vercel.json`, dispatched by `/api/cron?job=…`, authenticated wi
 at-least-once is the only delivery guarantee a scheduler offers — deliveries are
 stamped in the `events` table so a repeat firing sends nothing twice.
 
-| Job | Schedule | What it does |
-| --- | --- | --- |
-| `brief` | every 15 min | Sends each user's Morning Brief within ±7 minutes of their local `brief_time`. |
-| `nudges` | hourly | At local 20:00: streak guard first, then the review nudge. At most one per person per day. |
-| `digest` | Mondays | The opt-in weekly email. |
-| `maintenance` | daily | Trash retention, rate-limit sweep, stale AI cache. |
+| Job | Schedule (Hobby) | On Pro | What it does |
+| --- | --- | --- | --- |
+| `brief` | `0 2 * * *` | `*/15 * * * *` | Sends each user's Morning Brief within ±7 minutes of their local `brief_time`. |
+| `nudges` | `30 14 * * *` | `0 * * * *` | At local 20:00: streak guard first, then the review nudge. At most one per person per day. |
+| `digest` | `0 3 * * 1` | same | The opt-in weekly email. |
+| `maintenance` | `30 2 * * *` | same | Trash retention, rate-limit sweep, stale AI cache. |
+
+**A real limitation to know about.** Vercel's Hobby plan allows a cron to run at
+most once per day, so `vercel.json` ships with daily schedules. The two
+time-sensitive jobs are pinned to the UTC hours that correspond to the default
+Asia/Kolkata times — 02:00 UTC is 07:30 IST, and 14:30 UTC is 20:00 IST — which
+means a user whose `brief_time` or timezone is far from those will fall outside
+the job's window and receive nothing. The job logic is unchanged and correct;
+it simply is not being invoked often enough to serve every timezone. On Pro,
+widen the two schedules to the values above and per-timezone delivery works as
+designed.
 
 ---
 

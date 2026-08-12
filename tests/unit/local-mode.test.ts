@@ -248,3 +248,34 @@ describe('briefLocal punctuation', () => {
     expect((text.match(/!/g) ?? []).length).toBeLessThanOrEqual(1);
   });
 });
+
+describe('deriveTitle with an inline link', () => {
+  it('strips a link that shares a line with the note', () => {
+    expect(
+      deriveTitle('Read the attention paper properly https://arxiv.org/abs/1706.03762', 'web'),
+    ).toBe('Read the attention paper properly');
+  });
+
+  it('strips a link that leads the line', () => {
+    expect(deriveTitle('https://example.com/a worth a second look', 'web')).toBe(
+      'worth a second look',
+    );
+  });
+
+  it('still builds a title from the slug when the drop is only a link', () => {
+    expect(deriveTitle('https://example.com/how-to-rest-well', 'web')).toBe('How To Rest Well');
+  });
+
+  it('keeps the summary free of links too', () => {
+    const result = classifyLocal(
+      'Read the attention paper https://arxiv.org/abs/1706.03762\nthe one everyone cites',
+    );
+    expect(result.title).not.toContain('http');
+    expect(result.summary).not.toContain('http');
+    expect(result.summary).toContain('everyone cites');
+  });
+
+  it('never returns an empty title for a link-only drop with no slug', () => {
+    expect(deriveTitle('https://instagram.com/p/12345', 'instagram')).toBe('Saved from Instagram');
+  });
+});

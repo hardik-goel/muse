@@ -1,25 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
-    {
-      "comment": "Morning briefs. Every 15 minutes so each timezone is hit at its own local brief_time.",
-      "path": "/api/cron?job=brief",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "comment": "Evening pass: streak guard, then review nudge. Hourly; each user only fires at their local 20:00.",
-      "path": "/api/cron?job=nudges",
-      "schedule": "0 * * * *"
-    },
-    {
-      "comment": "Weekly email digest, Monday morning UTC.",
-      "path": "/api/cron?job=digest",
-      "schedule": "0 3 * * 1"
-    },
-    {
-      "comment": "Trash retention, rate-limit sweep, stale AI cache.",
-      "path": "/api/cron?job=maintenance",
-      "schedule": "30 2 * * *"
-    }
+    { "path": "/api/cron?job=brief", "schedule": "0 2 * * *" },
+    { "path": "/api/cron?job=nudges", "schedule": "30 14 * * *" },
+    { "path": "/api/cron?job=digest", "schedule": "0 3 * * 1" },
+    { "path": "/api/cron?job=maintenance", "schedule": "30 2 * * *" }
   ]
 }

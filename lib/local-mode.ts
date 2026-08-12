@@ -59,14 +59,22 @@ const PLATFORM_TYPE: Partial<Record<string, ItemType>> = {
   x: 'idea',
 };
 
-/** First non-URL line becomes the title. Nothing clever, and never empty. */
+/** Removes links from a line, leaving the prose around them. */
+function stripUrls(line: string): string {
+  return line.replace(/https?:\/\/\S+/gi, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/** First line of real prose becomes the title. Nothing clever, and never empty. */
 export function deriveTitle(raw: string, platform: string | null): string {
   const lines = raw
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean);
 
-  const firstProse = lines.find((line) => !/^https?:\/\/\S+$/i.test(line));
+  // A link pasted on the same line as a note is the commonest capture shape.
+  // Without stripping it, the title becomes "Read the paper https://arxiv.org/…",
+  // which is neither readable nor a title.
+  const firstProse = lines.map(stripUrls).find(Boolean);
   if (firstProse) return limitWords(truncate(firstProse, 120), 10);
 
   // Pure-URL drop: build something readable out of the link itself.
@@ -123,7 +131,8 @@ export function classifyLocal(raw: string): Classification {
   const remainder = text
     .split(/\r?\n/)
     .map((l) => l.trim())
-    .filter((l) => Boolean(l) && !/^https?:\/\/\S+$/i.test(l))
+    .map(stripUrls)
+    .filter(Boolean)
     .join(' ')
     .slice(title.length)
     .trim();
