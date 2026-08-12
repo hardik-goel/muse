@@ -173,6 +173,7 @@ npm run secret-grep      # fails if a secret could reach the browser
 npm run db:start         # local Supabase
 npm run db:reset         # re-apply all migrations from scratch
 npm run db:seed          # seed account + library
+npm run db:migrate <url> # apply migrations to a hosted database
 npm run db:stop
 
 npm run icons            # regenerate the PWA icon set
@@ -468,7 +469,16 @@ including an assertion that guest mode makes **zero** API requests.
 
 Built for Vercel, but nothing here is Vercel-specific except `vercel.json`.
 
-1. Create a Supabase project and run every file in `db/migrations/` in order.
+1. Create a Supabase project — either through the Vercel Marketplace
+   (`vercel integration add supabase`, which injects the env vars for you) or
+   directly at supabase.com. Then apply the schema:
+
+   ```bash
+   npm run db:migrate "$POSTGRES_URL"   # direct connection, port 5432
+   ```
+
+   Every migration is idempotent, so this is also how you bring an existing
+   deployment up to date.
 2. Enable the Google provider in Supabase Auth if you want the OAuth button, and
    add `https://your-app/auth/callback` as a redirect URL.
 3. Set the environment variables from [`.env.example`](.env.example) —

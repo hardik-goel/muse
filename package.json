@@ -21,7 +21,8 @@
     "db:seed": "tsx db/seed.ts",
     "secret-grep": "tsx scripts/secret-grep.ts",
     "smoke": "tsx scripts/smoke.ts",
-    "icons": "node scripts/generate-icons.mjs"
+    "icons": "node scripts/generate-icons.mjs",
+    "db:migrate": "bash scripts/migrate.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
