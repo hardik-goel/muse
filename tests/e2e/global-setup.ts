@@ -26,7 +26,7 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
   const baseURL =
     config.projects[0]?.use?.baseURL ??
     process.env.PLAYWRIGHT_BASE_URL ??
-    'http://127.0.0.1:3000';
+    `http://127.0.0.1:${process.env.PORT ?? 3100}`;
 
   await Promise.all(
     ROUTES.map(async (route) => {

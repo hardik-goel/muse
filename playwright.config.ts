@@ -1,6 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = Number(process.env.PORT ?? 3000);
+// Deliberately not 3000. That is where every other project's `next dev` lands,
+// and `reuseExistingServer` cannot tell one app's 200 from another's — point
+// the suite at an occupied 3000 and it runs green-ish against a stranger.
+const PORT = Number(process.env.PORT ?? 3100);
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
@@ -50,7 +53,14 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev',
-    url: baseURL,
+    // Wait on a route only this app serves, not on `/`. Any web server answers
+    // `/` with a 200; if something else already holds the port, the health
+    // probe 404s, the wait fails, and the run stops instead of testing a
+    // stranger's app and reporting its 404s as our bugs.
+    url: `${baseURL}/api/health`,
+    // `next dev` reads PORT from its own environment, not from this config, so
+    // without this it would bind 3000 while the suite talked to PORT.
+    env: { PORT: String(PORT) },
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

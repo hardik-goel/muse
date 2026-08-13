@@ -466,12 +466,31 @@ checks. It cleans up the rows it creates. Run `npm run dev` first.
 | `mobile` (iPhone 13 / WebKit) | Full guest loop, shell, keyboard |
 | `desktop` (Chrome) | The same, at desktop width |
 | `narrow` (320px) | No horizontal scroll on any surface; 44px tap targets |
-| `data` | RLS isolation with two real accounts (skips without a database) |
+| `data` | RLS isolation with two real accounts |
 | `signed-in` (in `desktop`) | The authenticated shell, settings and trash in a real browser |
 
 The guest suite is the one that must always pass: it needs no account and no
 database, and it proves the entire product loop works on Local mode alone —
 including an assertion that guest mode makes **zero** API requests.
+
+`data` and `signed-in` need a database, and **fail** rather than skip when they
+cannot find one — a skipped isolation test reads exactly like a passing one in
+a summary line. Give them what they need:
+
+```bash
+npm run db:start && npm run db:seed
+set -a; . ./.env.local; set +a     # the specs read the keys from the environment
+npm run test:e2e
+```
+
+On a machine with no Supabase, opt out by name — `MUSE_SKIP_DB_TESTS=1
+npm run test:e2e` — and the summary will say so.
+
+The suite serves itself on **port 3100**, not 3000, and waits on `/api/health`
+rather than `/`. Both are deliberate: `reuseExistingServer` cannot tell this
+app's 200 from another project's, so a `next dev` already sitting on 3000 would
+otherwise be tested in place of this one. Override with `PORT`, or point the
+whole suite at a deployment with `PLAYWRIGHT_BASE_URL`.
 
 ---
 

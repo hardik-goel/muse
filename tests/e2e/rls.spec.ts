@@ -1,21 +1,30 @@
 import { expect, test } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
-import { retryTransient } from './helpers';
+import { requireDatabase, retryTransient } from './helpers';
 
 /**
  * Proves the isolation claim with two real accounts rather than by reading the
- * policies. Requires a running Supabase, so it skips itself when one is not
- * configured — and fails loudly in CI, where it must never be skipped.
+ * policies. Requires a running Supabase, and refuses to pass silently without
+ * one — an isolation suite that skips itself is worse than no suite at all.
  */
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
 
-const configured = Boolean(URL && ANON && SERVICE);
+const missing = Object.entries({
+  NEXT_PUBLIC_SUPABASE_URL: URL,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ANON,
+  SUPABASE_SERVICE_ROLE_KEY: SERVICE,
+})
+  .filter(([, value]) => !value)
+  .map(([name]) => name);
 
 test.describe('row level security', () => {
-  test.skip(!configured, 'Set SUPABASE_SERVICE_ROLE_KEY to run the isolation tests.');
+  requireDatabase(
+    missing,
+    'Run `npm run db:start`, then load the keys with `set -a; . ./.env.local; set +a`.',
+  );
 
   const alice = { email: `rls-a-${Date.now()}@muse.test`, password: 'muse-dev-password' };
   const bob = { email: `rls-b-${Date.now()}@muse.test`, password: 'muse-dev-password' };
@@ -25,6 +34,11 @@ test.describe('row level security', () => {
   let aliceItemId = '';
 
   test.beforeAll(async () => {
+    // requireDatabase has already failed the run with the actionable message;
+    // this hook still executes, so leave rather than add "supabaseUrl is
+    // required" on top of it.
+    if (missing.length > 0) return;
+
     const admin = createClient(URL, SERVICE, { auth: { persistSession: false } });
 
     for (const [person, target] of [
@@ -55,6 +69,11 @@ test.describe('row level security', () => {
   });
 
   test.afterAll(async () => {
+    // Nothing was created if the suite never got its configuration, and
+    // building a client from an empty URL here would bury the real complaint
+    // under a second, less useful error.
+    if (missing.length > 0) return;
+
     const admin = createClient(URL, SERVICE, { auth: { persistSession: false } });
     for (const id of [aliceId, bobId].filter(Boolean)) {
       await admin.auth.admin.deleteUser(id);

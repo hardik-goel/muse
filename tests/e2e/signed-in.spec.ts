@@ -1,14 +1,14 @@
 import { expect, test } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
-import { retryTransient } from './helpers';
+import { requireDatabase, retryTransient } from './helpers';
 
 /**
  * The signed-in product, in a real browser, against a real database.
  *
- * Skips itself when Supabase is not configured, so the guest and shell suites
- * still run on a machine with no database. When it does run, it is the only
- * place the authenticated shell, the settings screen and the trash are proven
- * to render rather than merely compile.
+ * This is the only place the authenticated shell, the settings screen and the
+ * trash are proven to render rather than merely compile, so an absent database
+ * fails the suite rather than quietly standing it down. MUSE_SKIP_DB_TESTS=1
+ * is the deliberate opt-out for a machine with no Supabase.
  */
 
 const URL_ = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
@@ -16,19 +16,33 @@ const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 const EMAIL = process.env.SEED_EMAIL ?? 'you@muse.test';
 const PASSWORD = process.env.SEED_PASSWORD ?? 'muse-dev-password';
 
+const missing = Object.entries({
+  NEXT_PUBLIC_SUPABASE_URL: URL_,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ANON,
+})
+  .filter(([, value]) => !value)
+  .map(([name]) => name);
+
 // These share one seeded account and one database; running them against each
 // other buys nothing and makes the dev server the bottleneck.
 test.describe.configure({ mode: 'serial' });
 
 test.describe('signed in', () => {
-  test.skip(!URL_ || !ANON, 'Needs a running Supabase and a seeded account.');
+  requireDatabase(
+    missing,
+    'Run `npm run db:start && npm run db:seed`, then load the keys with `set -a; . ./.env.local; set +a`.',
+  );
 
   test.beforeEach(async ({ page, context, baseURL }) => {
+    // requireDatabase has already failed the run with the actionable message;
+    // this hook still executes, so leave rather than pile on.
+    if (missing.length > 0) return;
+
     const client = createClient(URL_, ANON, { auth: { persistSession: false } });
 
     // signInWithPassword resolves with { error } rather than rejecting, so the
     // retry only engages if a transient failure is re-thrown. A genuinely
-    // missing seed account falls through and skips the suite instead.
+    // missing seed account is a broken rig, not a reason to report success.
     const { data, error } = await retryTransient(async () => {
       const result = await client.auth.signInWithPassword({ email: EMAIL, password: PASSWORD });
       if (result.error && /timed out|timeout|fetch failed/i.test(result.error.message)) {
@@ -36,7 +50,11 @@ test.describe('signed in', () => {
       }
       return result;
     });
-    test.skip(Boolean(error), `Run \`npm run db:seed\` first (${error?.message ?? ''}).`);
+    if (error) {
+      throw new Error(
+        `Could not sign in as ${EMAIL} (${error.message}). Run \`npm run db:seed\` first.`,
+      );
+    }
 
     const ref = new globalThis.URL(URL_).hostname.split('.')[0];
 

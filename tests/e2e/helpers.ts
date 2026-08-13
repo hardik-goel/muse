@@ -1,4 +1,30 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+/**
+ * Guards a suite that cannot run without a database.
+ *
+ * These suites used to skip themselves whenever Supabase was absent, which
+ * reads identically to passing in a summary line: a run could report "56
+ * passed" while the only tests that touch auth, persistence and row level
+ * security had quietly stood down. Absent configuration is now a failure, and
+ * a developer who genuinely has no database opts out by name.
+ */
+export function requireDatabase(missing: string[], remedy: string): void {
+  if (missing.length === 0) return;
+
+  if (process.env.MUSE_SKIP_DB_TESTS === '1') {
+    test.skip(true, `MUSE_SKIP_DB_TESTS=1 — not running: missing ${missing.join(', ')}.`);
+    return;
+  }
+
+  test.beforeAll(() => {
+    throw new Error(
+      `This suite needs a database and none is configured (missing ${missing.join(', ')}).\n` +
+        `${remedy}\n` +
+        'To run without one on purpose, set MUSE_SKIP_DB_TESTS=1.',
+    );
+  });
+}
 
 /**
  * Waits for the app shell to finish hydrating.
