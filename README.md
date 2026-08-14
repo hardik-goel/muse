@@ -188,6 +188,13 @@ link, type a thought, or attach up to six images — each image becomes its own
 item. *Smart* mode classifies for you; *By hand* skips the classifier entirely
 when you already know what a thing is.
 
+**Or speak it.** The mic under the capture box dictates straight into it, using
+the browser's own recogniser — no key, no cost, and it appends to whatever you
+already typed rather than replacing it. The button is not rendered at all in a
+browser without the Web Speech API (Firefox), so it is never present and broken.
+Chrome's recogniser streams audio to Google to transcribe it, which is why this
+is a button you press and never a mode that is on by default.
+
 **Duplicates** are caught before any AI spend: exact normalised URL, then title
 overlap ≥ 0.7, then (with embeddings configured) cosine ≥ 0.9. You get two
 one-tap ways out.

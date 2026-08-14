@@ -8,6 +8,7 @@ import { useStore } from '@/components/shell/StoreProvider';
 import { useToast } from '@/components/ui/Toast';
 import { DuplicateCard } from '@/components/capture/DuplicateCard';
 import { ImagePicker, type StagedImage } from '@/components/capture/ImagePicker';
+import { MicButton } from '@/components/capture/MicButton';
 import type { DupeHit } from '@/lib/dupe';
 import type { ItemType } from '@/lib/types';
 import { ITEM_TYPES } from '@/lib/types';
@@ -147,6 +148,8 @@ export function CaptureSheet({
                 data-testid="capture-input"
                 aria-label="What are you dropping in?"
               />
+
+              <MicButton value={raw} onText={setRaw} disabled={busy} />
 
               {platform && isWalled(platform) ? (
                 <p className="rounded-2xl border border-line bg-raised px-3.5 py-2.5 text-xs text-muted">
