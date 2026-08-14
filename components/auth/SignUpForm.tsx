@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Field, Input } from '@/components/ui/Field';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { publicEnv } from '@/lib/env';
-import { readGuestSession, clearGuestSession } from '@/lib/guest';
+import { readGuestSession, clearGuestSession, stashGuestHandoff } from '@/lib/guest';
 
 /**
  * Uncontrolled fields, for the same reason as SignInForm: text typed before
@@ -37,6 +37,11 @@ export function SignUpForm({ next = '/onboarding' }: { next?: string }) {
     }
 
     const supabase = supabaseBrowser();
+
+    // Before the request, not after: whatever happens next — a verification
+    // email opened in a fresh tab, a closed laptop, a different browser session
+    // entirely — the guest work is already somewhere that outlives this tab.
+    stashGuestHandoff();
     // Timezone is captured at signup; it drives brief timing and every
     // "today"-shaped calculation from here on.
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
@@ -75,6 +80,9 @@ export function SignUpForm({ next = '/onboarding' }: { next?: string }) {
         <p className="font-display text-xl text-text">Check your inbox.</p>
         <p className="mt-2 text-sm text-muted">
           We sent a link to {checkInbox}. Click it and you are in.
+        </p>
+        <p className="mt-2 text-sm text-faint">
+          Anything you dropped as a guest is held for a day and comes across with you.
         </p>
       </div>
     );
