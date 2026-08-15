@@ -7,6 +7,9 @@ import { Field, Input } from '@/components/ui/Field';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { publicEnv } from '@/lib/env';
 import { readGuestSession, clearGuestSession, stashGuestHandoff } from '@/lib/guest';
+import { assessPassword, MIN_PASSWORD_LENGTH } from '@/lib/password';
+import { PasswordStrength } from '@/components/auth/PasswordStrength';
+import { signUpErrorMessage } from '@/lib/auth-errors';
 
 /**
  * Uncontrolled fields, for the same reason as SignInForm: text typed before
@@ -18,6 +21,10 @@ export function SignUpForm({ next = '/onboarding' }: { next?: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkInbox, setCheckInbox] = useState<string | null>(null);
+  // Tracked from the uncontrolled field's onChange rather than by making it
+  // controlled: text typed before hydration still must not disappear.
+  const [password, setPassword] = useState('');
+  const strength = assessPassword(password);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,13 +32,17 @@ export function SignUpForm({ next = '/onboarding' }: { next?: string }) {
     const form = new FormData(event.currentTarget);
     const name = String(form.get('name') ?? '').trim();
     const email = String(form.get('email') ?? '').trim();
-    const password = String(form.get('password') ?? '');
+    const typed = String(form.get('password') ?? '');
 
     setBusy(true);
     setError(null);
 
-    if (password.length < 8) {
-      setError('Eight characters minimum.');
+    // Re-checked here rather than trusted from state, because autofill can put
+    // a password in the field without ever firing a change event.
+    const verdict = assessPassword(typed);
+    if (!verdict.ok) {
+      setPassword(typed);
+      setError(verdict.summary || 'Pick a stronger password.');
       setBusy(false);
       return;
     }
@@ -48,7 +59,7 @@ export function SignUpForm({ next = '/onboarding' }: { next?: string }) {
 
     const { data, error: authError } = await supabase.auth.signUp({
       email,
-      password,
+      password: typed,
       options: {
         data: { name, timezone },
         emailRedirectTo: `${publicEnv.appUrl}/auth/callback?next=${encodeURIComponent(next)}`,
@@ -56,7 +67,7 @@ export function SignUpForm({ next = '/onboarding' }: { next?: string }) {
     });
 
     if (authError) {
-      setError(authError.message);
+      setError(signUpErrorMessage(authError.message));
       setBusy(false);
       return;
     }
@@ -115,7 +126,7 @@ export function SignUpForm({ next = '/onboarding' }: { next?: string }) {
         )}
       </Field>
 
-      <Field label="password" hint="Eight characters, minimum.">
+      <Field label="password" hint={`${MIN_PASSWORD_LENGTH} characters, with a symbol and a number.`}>
         {({ id, ...aria }) => (
           <Input
             id={id}
@@ -124,11 +135,15 @@ export function SignUpForm({ next = '/onboarding' }: { next?: string }) {
             name="password"
             autoComplete="new-password"
             required
-            minLength={8}
-            placeholder="••••••••"
+            minLength={MIN_PASSWORD_LENGTH}
+            placeholder="••••••••••"
+            onChange={(e) => setPassword(e.target.value)}
+            data-testid="sign-up-password"
           />
         )}
       </Field>
+
+      <PasswordStrength assessment={strength} />
 
       {error ? (
         <p role="alert" data-testid="auth-error" className="text-sm text-red">
