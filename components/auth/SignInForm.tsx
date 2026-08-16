@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Field, Input } from '@/components/ui/Field';
-import { supabaseBrowser } from '@/lib/supabase/client';
 
 /**
  * The fields are uncontrolled on purpose.
@@ -30,18 +29,24 @@ export function SignInForm({ next = '/now' }: { next?: string }) {
     setBusy(true);
     setError(null);
 
-    const supabase = supabaseBrowser();
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    // Through our own origin rather than straight to Supabase, so a browser on
+    // a network that blocks supabase.co can still get in. See
+    // app/api/auth/sign-in/route.ts.
+    try {
+      const res = await fetch('/api/auth/sign-in', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (authError) {
-      setError(
-        authError.message === 'Invalid login credentials'
-          ? 'That combination did not work.'
-          : authError.message,
-      );
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        setError(body.error ?? 'That combination did not work.');
+        setBusy(false);
+        return;
+      }
+    } catch {
+      setError('Could not reach the server. Check your connection and try again.');
       setBusy(false);
       return;
     }

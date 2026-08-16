@@ -20,6 +20,10 @@ const PUBLIC_PREFIXES = [
   '/terms',
   '/plans',
   '/api/health',
+  // The same-origin front door for sign-up and sign-in. Public by definition:
+  // it is what a signed-out visitor uses to stop being one. It does its own
+  // per-IP rate limiting, since the usual per-user limiter has no user yet.
+  '/api/auth',
   '/api/capture/token-drop',
   '/api/billing/webhook',
   '/api/cron',

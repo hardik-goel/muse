@@ -4,8 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Field, Input } from '@/components/ui/Field';
-import { supabaseBrowser } from '@/lib/supabase/client';
-import { publicEnv } from '@/lib/env';
 import { readGuestSession, clearGuestSession, stashGuestHandoff } from '@/lib/guest';
 import { assessPassword, MIN_PASSWORD_LENGTH } from '@/lib/password';
 import { PasswordStrength } from '@/components/auth/PasswordStrength';
@@ -47,8 +45,6 @@ export function SignUpForm({ next = '/onboarding' }: { next?: string }) {
       return;
     }
 
-    const supabase = supabaseBrowser();
-
     // Before the request, not after: whatever happens next — a verification
     // email opened in a fresh tab, a closed laptop, a different browser session
     // entirely — the guest work is already somewhere that outlives this tab.
@@ -57,24 +53,32 @@ export function SignUpForm({ next = '/onboarding' }: { next?: string }) {
     // "today"-shaped calculation from here on.
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
 
-    const { data, error: authError } = await supabase.auth.signUp({
-      email,
-      password: typed,
-      options: {
-        data: { name, timezone },
-        emailRedirectTo: `${publicEnv.appUrl}/auth/callback?next=${encodeURIComponent(next)}`,
-      },
-    });
+    // Our own origin, not Supabase's. A browser that cannot reach supabase.co —
+    // filtered DNS, a content blocker, Private Relay — can still sign up,
+    // because it only ever talks to the host it loaded this page from.
+    let payload: { confirmed?: boolean; error?: string };
+    try {
+      const res = await fetch('/api/auth/sign-up', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: typed, name, timezone, next }),
+      });
+      payload = (await res.json().catch(() => ({}))) as typeof payload;
 
-    if (authError) {
-      setError(signUpErrorMessage(authError.message));
+      if (!res.ok) {
+        setError(payload.error ?? 'That did not go through. Try again.');
+        setBusy(false);
+        return;
+      }
+    } catch (err) {
+      setError(signUpErrorMessage(err instanceof Error ? err.message : 'Load failed'));
       setBusy(false);
       return;
     }
 
-    // Email verification is on in production: no session comes back until the
-    // link is clicked. Locally, confirmations are off and we land straight in.
-    if (!data.session) {
+    // Unconfirmed means verification is switched on and the account is waiting
+    // on an emailed link. Otherwise the session cookie is already set.
+    if (!payload.confirmed) {
       setCheckInbox(email);
       setBusy(false);
       return;

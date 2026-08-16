@@ -20,6 +20,10 @@ const ROUTES = [
   '/terms',
   '/api/health',
   '/api/items',
+  // GET returns 405, which is fine — the point is to make Next compile the
+  // module now rather than inside the first sign-in's timeout.
+  '/api/auth/sign-in',
+  '/api/auth/sign-up',
 ];
 
 export default async function globalSetup(config: FullConfig): Promise<void> {

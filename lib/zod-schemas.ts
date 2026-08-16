@@ -226,3 +226,21 @@ export type ManualCaptureInput = z.infer<typeof zManualCapture>;
 export type ItemPatchInput = z.infer<typeof zItemPatch>;
 export type ItemsQuery = z.infer<typeof zItemsQuery>;
 export type ImportPayload = z.infer<typeof zImport>;
+
+/**
+ * Credentials arriving at the same-origin auth proxy. The password ceiling is
+ * generous on purpose: strength is judged by lib/password.ts, and a hard cap
+ * here exists only to stop a megabyte of text reaching the hashing routine.
+ */
+export const zSignUp = z.object({
+  email: z.string().trim().email('That email address does not look right.').max(320),
+  password: z.string().min(8).max(200),
+  name: z.string().trim().max(80).optional(),
+  timezone: z.string().trim().max(60).optional(),
+  next: z.string().max(300).optional(),
+});
+
+export const zSignIn = z.object({
+  email: z.string().trim().email('That email address does not look right.').max(320),
+  password: z.string().min(1).max(200),
+});
