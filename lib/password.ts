@@ -10,7 +10,7 @@
  * set, including a future reset-password screen.
  */
 
-export const MIN_PASSWORD_LENGTH = 10;
+export const MIN_PASSWORD_LENGTH = 8;
 
 export interface PasswordRule {
   id: string;
