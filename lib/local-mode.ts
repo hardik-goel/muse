@@ -50,6 +50,49 @@ const KEYWORD_RULES: { type: ItemType; re: RegExp }[] = [
   },
 ];
 
+/** What to call a link whose own URL says nothing readable. */
+const PLATFORM_LABEL: Partial<Record<string, string>> = {
+  spotify: 'Spotify track',
+  youtube: 'YouTube video',
+  substack: 'Substack post',
+  linkedin: 'LinkedIn post',
+  instagram: 'Instagram post',
+  x: 'Post on X',
+};
+
+/** The bit of a hostname worth showing: no "www.", no trailing dot. */
+function host(parsed: URL): string {
+  return parsed.hostname.replace(/^www\./i, '');
+}
+
+/** Path segments that are routing furniture, never a name for the thing. */
+const PATH_FURNITURE =
+  /^(watch|abs|pdf|track|album|playlist|artist|episode|video|status|post|posts|p|s|e|d|item|index|home|view|share|embed|dp|gp)$/i;
+
+/**
+ * Is this path segment words a person wrote, or an identifier a machine made?
+ *
+ * "the-attention-paper" is a title. "4cOdK2wGLETKBW3PvgPWqT" and "1706.03762"
+ * are not, and neither is "watch". Getting this wrong is very visible: the
+ * product's whole promise is that it titles things for you.
+ */
+function readableSlug(slug: string): boolean {
+  const trimmed = slug.trim();
+  if (trimmed.length < 3 || trimmed.length > 80) return false;
+  if (PATH_FURNITURE.test(trimmed)) return false;
+
+  const words = trimmed.split(/\s+/).filter(Boolean);
+  // Several words joined by separators are almost always a human slug.
+  if (words.length >= 2) return words.some((w) => /[aeiou]/i.test(w));
+
+  const word = words[0] ?? '';
+  if (!/[aeiou]/i.test(word)) return false;
+  // Identifiers give themselves away: digits mixed in, or camel/base62 casing.
+  if (/\d/.test(word)) return false;
+  if (/[a-z]/.test(word) && /[A-Z]/.test(word)) return false;
+  return true;
+}
+
 const PLATFORM_TYPE: Partial<Record<string, ItemType>> = {
   spotify: 'music',
   youtube: 'learning',
@@ -89,10 +132,17 @@ export function deriveTitle(raw: string, platform: string | null): string {
         ?.replace(/[-_]+/g, ' ')
         .replace(/\.\w{2,4}$/, '')
         .trim();
-      if (slug && slug.length > 2 && !/^\d+$/.test(slug)) {
+      if (slug && readableSlug(slug)) {
         return limitWords(slug.replace(/\b\w/g, (c) => c.toUpperCase()), 10);
       }
-      const label = platform ? platform[0]?.toUpperCase() + platform.slice(1) : parsed.hostname;
+      // The slug was an identifier, not words. Naming the kind of thing beats
+      // showing "4cOdK2wGLETKBW3PvgPWqT" and calling it a title.
+      if (platform && PLATFORM_LABEL[platform]) return PLATFORM_LABEL[platform] as string;
+      // "web" is the catch-all detectPlatform returns for everything it does not
+      // recognise, and "Saved from Web" tells the user nothing they did not
+      // already know. The host does: "Saved from arxiv.org".
+      const named = platform && platform !== 'web';
+      const label = named ? platform[0]?.toUpperCase() + platform.slice(1) : host(parsed);
       return `Saved from ${label}`;
     } catch {
       /* fall through */

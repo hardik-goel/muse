@@ -110,6 +110,7 @@ export function LibraryTab() {
 
   return (
     <div className="flex flex-col gap-4" data-library-ready={ready ? 'true' : 'false'}>
+      <h1 className="sr-only">Library</h1>
       <div className="flex gap-2">
         <Input
           ref={searchRef}

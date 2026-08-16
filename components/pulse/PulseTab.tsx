@@ -65,6 +65,7 @@ export function PulseTab() {
 
   return (
     <div className="flex flex-col gap-6">
+      <h1 className="sr-only">Pulse</h1>
       {/* Momentum shares The Current's wine gradient — the two places the
           product raises its voice. */}
       <section className="rounded-card bg-wine px-5 py-6" data-testid="momentum">

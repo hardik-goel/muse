@@ -69,8 +69,19 @@ describe('deriveTitle', () => {
     expect(deriveTitle('https://example.com/how-to-rest-well', 'web')).toBe('How To Rest Well');
   });
 
-  it('falls back to the platform name when the slug is useless', () => {
-    expect(deriveTitle('https://instagram.com/p/12345', 'instagram')).toBe('Saved from Instagram');
+  it('names the kind of thing when the slug is an identifier', () => {
+    expect(deriveTitle('https://instagram.com/p/12345', 'instagram')).toBe('Instagram post');
+    expect(
+      deriveTitle('https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT', 'spotify'),
+    ).toBe('Spotify track');
+    expect(deriveTitle('https://arxiv.org/abs/1706.03762', 'web')).toBe('Saved from arxiv.org');
+    expect(deriveTitle('https://www.nature.com/articles/12345', 'web')).toBe('Saved from nature.com');
+  });
+
+  it('does not mistake routing furniture for a title', () => {
+    expect(deriveTitle('https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube')).toBe(
+      'YouTube video',
+    );
   });
 });
 
@@ -276,6 +287,6 @@ describe('deriveTitle with an inline link', () => {
   });
 
   it('never returns an empty title for a link-only drop with no slug', () => {
-    expect(deriveTitle('https://instagram.com/p/12345', 'instagram')).toBe('Saved from Instagram');
+    expect(deriveTitle('https://instagram.com/p/12345', 'instagram')).toBe('Instagram post');
   });
 });

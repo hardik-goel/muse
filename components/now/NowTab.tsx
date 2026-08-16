@@ -57,6 +57,9 @@ export function NowTab() {
 
   return (
     <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-7">
+      {/* The tab bar names this screen visually; assistive tech needs it in the
+          document too, so every tab carries one heading it does not draw. */}
+      <h1 className="sr-only">Now</h1>
       <div className="flex flex-col gap-6">
         <MorningBrief />
         <TheCurrent onFocus={setFocusItemId} />

@@ -20,9 +20,11 @@ export default async function LandingPage() {
 
       <div className="relative mx-auto flex w-full max-w-sm flex-1 flex-col justify-center">
         <Wordmark size="lg" />
-        <p className="mt-4 max-w-[22ch] font-display text-[clamp(1.5rem,7vw,2rem)] leading-tight text-soft">
+        {/* The promise is the page's heading, not decoration: it is what a
+            screen reader should announce and what search results should show. */}
+        <h1 className="mt-4 max-w-[22ch] font-display text-[clamp(1.5rem,7vw,2rem)] font-normal leading-tight text-soft">
           Everything you find, one calm place.
-        </p>
+        </h1>
         <p className="mt-4 text-sm leading-relaxed text-muted">
           Drop in a link, a photo, a half-formed thought. Muse titles it, files it, and tells you
           what to finish first. Organising is our job.

@@ -68,11 +68,19 @@ export function truncate(text: string, max: number): string {
   return `${text.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
 }
 
-/** Word-limited truncation — the AI contract caps titles at 10 words. */
+/**
+ * Word-limited truncation — the AI contract caps titles at 10 words.
+ *
+ * The ellipsis matters more than it looks. Cut silently, a clipped title reads
+ * as a finished thought that happens to make no sense: "the city keeps its
+ * lights on for nobody in". With the mark, the same title reads as deliberately
+ * shortened, which is what it is.
+ */
 export function limitWords(text: string, maxWords: number): string {
   const words = text.trim().split(/\s+/).filter(Boolean);
   if (words.length <= maxWords) return words.join(' ');
-  return words.slice(0, maxWords).join(' ');
+  // Trailing punctuation before the ellipsis reads as a stutter ("first,…").
+  return `${words.slice(0, maxWords).join(' ').replace(/[,;:.\-–—]+$/, '')}…`;
 }
 
 export function uid(): string {
