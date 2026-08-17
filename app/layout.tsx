@@ -13,26 +13,15 @@ export const metadata: Metadata = {
   },
   description: 'Everything you find, one calm place.',
   applicationName: 'Muse',
-  manifest: '/manifest.webmanifest',
-  appleWebApp: {
-    capable: true,
-    title: 'Muse',
-    statusBarStyle: 'black-translucent',
-  },
-  other: {
-    // `appleWebApp.capable` emits only the standardised `mobile-web-app-capable`
-    // as of Next 15. Android honours that name; iOS Safari does not, and without
-    // the Apple-prefixed one it launches the home-screen icon into a normal
-    // browser tab — chrome, address bar and all. Both names have to be present.
-    'apple-mobile-web-app-capable': 'yes',
-  },
+  // The manifest link, the apple-touch-icon and every apple-mobile-web-app-*
+  // tag are declared in <head> in the layout below instead of here. Metadata
+  // returned from this export is streamed into the body, which iOS ignores.
   formatDetection: { telephone: false },
   icons: {
     icon: [
       { url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' },
       { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
     ],
-    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
   openGraph: {
     title: 'Muse.',
@@ -55,6 +44,22 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en-IN" className={fontVariables} suppressHydrationWarning>
+      {/*
+        Declared here rather than left to the metadata export, which Next
+        streams into the body and hoists with a script. Chrome copes; iOS Safari
+        reads apple-mobile-web-app-capable out of <head> while parsing and never
+        looks again, so a tag that arrives in the body is a tag that does not
+        exist — and the home-screen icon opens a browser tab instead of the app.
+        Static markup, so it lands in the first bytes of the document.
+      */}
+      <head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Muse" />
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+      </head>
       <body className="min-h-dvh bg-bg font-body text-text antialiased">
         <a
           href="#main"

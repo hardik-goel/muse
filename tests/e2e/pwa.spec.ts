@@ -12,6 +12,30 @@ import { expect, test } from '@playwright/test';
  */
 
 test.describe('installability', () => {
+  /**
+   * Presence is not enough, and checking only presence is how this shipped
+   * broken twice. Next streams the metadata export into the <body> and hoists
+   * it with a script afterwards; the tag was findable in the DOM the whole time
+   * while iOS, which parses <head> once and never revisits it, saw nothing. So
+   * this reads the raw HTML and insists the tags land before </head>.
+   */
+  test('serves the install tags inside <head>, not streamed into the body', async ({ request }) => {
+    const html = await (await request.get('/')).text();
+    const headEnds = html.indexOf('</head>');
+    expect(headEnds, 'no </head> in the document').toBeGreaterThan(0);
+
+    for (const tag of [
+      'name="apple-mobile-web-app-capable"',
+      'name="mobile-web-app-capable"',
+      'rel="manifest"',
+      'rel="apple-touch-icon"',
+    ]) {
+      const at = html.indexOf(tag);
+      expect(at, `${tag} is missing entirely`).toBeGreaterThan(0);
+      expect(at, `${tag} is in the body; iOS Safari will never read it`).toBeLessThan(headEnds);
+    }
+  });
+
   test('declares itself installable to both iOS and Android', async ({ page }) => {
     await page.goto('/');
 
