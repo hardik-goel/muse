@@ -19,6 +19,13 @@ export const metadata: Metadata = {
     title: 'Muse',
     statusBarStyle: 'black-translucent',
   },
+  other: {
+    // `appleWebApp.capable` emits only the standardised `mobile-web-app-capable`
+    // as of Next 15. Android honours that name; iOS Safari does not, and without
+    // the Apple-prefixed one it launches the home-screen icon into a normal
+    // browser tab — chrome, address bar and all. Both names have to be present.
+    'apple-mobile-web-app-capable': 'yes',
+  },
   formatDetection: { telephone: false },
   icons: {
     icon: [
